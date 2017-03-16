@@ -66,6 +66,7 @@
     snake.width        = W;
     snake.height       = H;
     this.init          = function() {
+	snake.focus();
       snakeArr  = [];
       isBegin   = 1;
       isPause   = 0;
@@ -149,8 +150,9 @@
       }
       return false
     }
-    snake.onkeydown    = function(e) { //改变蛇方向
+    document.onkeydown    = function(e) { //改变蛇方向
       var code = e.keyCode - 37;
+	  console.log("e", e);
       switch(code) {
         case 1 :
           direction = (snakeArr.length > 1 && direction == allDir.bottom) ? allDir.bottom : allDir.top;
