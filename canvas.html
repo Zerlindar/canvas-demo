@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <title>canvas贪吃蛇</title>
+  <style>
+    .btn {
+      position: absolute;
+      z-index: 2;
+      padding: 4px 10px;
+      border: 1px solid #00b3ee;
+      font-size: 20px;
+      top: 16px;
+    }
+
+    #start {
+      left: 20px;
+    }
+
+    #pause {
+      left: 50%;
+    }
+
+    #score {
+      position: absolute;
+      right: 20px;
+      top: 16px;
+      z-index: 2;
+      padding: 4px 10px;
+      font-size: 20px;
+    }
+
+    #snake {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+<div class="btn" id="start">重新开始</div>
+<div class="btn" id="pause">暂停</div>
+<div id="score">长度：<span id="scor">1</span></div>
+<canvas id="snake"></canvas>
+</canvas>
+<script>
+  function Snake(snake, start, pause, scor, color, size, speed) {
+    var self           = this,
+        snake          = document.getElementById(snake),
+        start          = document.getElementById(start),
+        pause          = document.getElementById(pause),
+        scor           = document.getElementById(scor),
+        ctx            = snake.getContext("2d"),
+        size           = size,
+        speed          = speed * 1000,
+        W              = (Math.floor(window.innerWidth / size) - 1) * size,
+        H              = (Math.floor(window.innerHeight / size) - 1) * size,
+        ctxOpt         = {x: size * 3, y: size * 3},
+        allDir         = {left: -1, right: 1, top: -2, bottom: 2},
+        foodX, foodY, headX, headY, direction, snakeArr, lastX, lastY, score;
+    var isPause        = 0,
+        isBegin        = 0;
+    snake.width        = W;
+    snake.height       = H;
+    this.init          = function() {
+      snakeArr  = [];
+      isBegin   = 1;
+      isPause   = 0;
+      score     = 1;
+      direction = allDir.right;             //用来控制蛇头的方向
+      headX = ctxOpt.x;                //蛇头的x坐标
+      headY = ctxOpt.y;                //蛇头的y坐标
+      pause.innerHTML           = "暂停";
+      scor.innerHTML            = score;
+      snake.style.pointerEvents = "auto";
+      ctx.clearRect(0, 0, W, H);       //清空当前画布
+      self.initDraw();
+      self.setFood();
+      self.move();
+    }
+    this.initDraw      = function() {
+      ctx.fillStyle = color;
+      ctx.fillRect(ctxOpt.x, ctxOpt.y, size, size);
+      snakeArr.push({x: ctxOpt.x, y: ctxOpt.y});
+    }
+    this.move          = function() {
+      switch(direction) {   //判断移动方向
+        case allDir.top:
+          headY = headY - size;
+          break;
+        case allDir.right:
+          headX = headX + size;
+          break;
+        case allDir.bottom:
+          headY = headY + size;
+          break;
+        case allDir.left:
+          headX = headX - size;
+          break;
+      }
+      if(!self.isSelf(headX, headY)) {  //撞到自己
+        if(headX > W - size || headX < 0 || headY > H - size || headY < 0) {  //撞墙
+          alert("撞墙了~");
+          isBegin = 0;
+        } else {
+          ctx.fillStyle = color;
+          ctx.fillRect(headX, headY, size, size);
+          snakeArr = [{x: headX, y: headY}].concat(snakeArr);
+          if(!self.isEat()) {
+            var snakeTail = snakeArr.pop();
+            ctx.clearRect(snakeTail.x, snakeTail.y, size, size);
+          }
+          if(!isPause && isBegin) {
+            setTimeout(self.move, speed);
+          }
+        }
+      } else {
+        alert("撞到自己了~");
+        isBegin = 0;
+      }
+    }
+    this.setFood       = function() {
+      foodX = size * Math.floor(Math.random() * W / size);
+      foodY = size * Math.floor(Math.random() * H / size);
+      if(!self.isSelf(foodX, foodY)) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(foodX, foodY, size, size);
+      } else {
+        self.setFood();
+      }
+    }
+    this.isEat         = function() {
+      if((headX == foodX) && (headY == foodY)) {
+        self.setFood();
+        score++;
+        scor.innerHTML = score;
+        return true;
+      }
+      return false;
+    }
+    this.isSelf        = function(x, y) {
+      for(var i = 1; i < snakeArr.length; i++) {
+        if(snakeArr[i].x == x && snakeArr[i].y == y) {
+          return true
+        }
+      }
+      return false
+    }
+    snake.onkeydown    = function(e) { //改变蛇方向
+      var code = e.keyCode - 37;
+      switch(code) {
+        case 1 :
+          direction = (snakeArr.length > 1 && direction == allDir.bottom) ? allDir.bottom : allDir.top;
+          break;//上
+        case 2 :
+          direction = (snakeArr.length > 1 && direction == allDir.left) ? allDir.left : allDir.right;
+          break;//右
+        case 3 :
+          direction = (snakeArr.length > 1 && direction == allDir.top) ? allDir.top : allDir.bottom;
+          break;//下
+        case 0 :
+          direction = (snakeArr.length > 1 && direction == allDir.right) ? allDir.right : allDir.left;
+          break;//左
+      }
+    }
+    snake.ontouchend   = function(event) {
+      console.log("touchend");
+      var currentX = event.changedTouches[0].pageX,
+          currentY = event.changedTouches [0].pageY,
+          deferX   = currentX - lastX,
+          deferY   = currentY - lastY,
+          min      = 10,
+          vertical;
+      vertical     = Math.abs(deferX) - Math.abs(deferY) > 0 ? 0 : 1;
+      if(vertical) {
+        if(Math.abs(deferY) > min) {
+          if(deferY < 0) {
+            direction = (snakeArr.length > 1 && direction == allDir.bottom) ? allDir.bottom : allDir.top;
+          } else {
+            direction = (snakeArr.length > 1 && direction == allDir.top) ? allDir.top : allDir.bottom;
+          }
+        }
+      } else {
+        if(Math.abs(deferX) > min) {
+          if(deferX < 0) {
+            direction = (snakeArr.length > 1 && direction == allDir.right) ? allDir.right : allDir.left;
+          } else {
+            direction = (snakeArr.length > 1 && direction == allDir.left) ? allDir.left : allDir.right;
+          }
+        }
+      }
+    }
+    snake.ontouchstart = function(event) {
+      console.log("start: ", event);
+      lastX = event.touches[0].pageX
+      lastY = event.touches[0].pageY
+    }
+    start.onclick      = function() {
+      if(confirm("将要开始新的一局游戏")) {
+        isBegin = false;
+        setTimeout(function() {
+          self.init();
+        }, 1000)
+      }
+    }
+    pause.onclick      = function() {
+      if(isBegin && !isPause) {
+        isPause = !isPause;
+        pause.innerHTML           = "继续";
+        snake.style.pointerEvents = "none";
+      } else if(isBegin && isPause) {
+        isPause = !isPause;
+        self.move();
+        pause.innerHTML           = "暂停";
+        snake.style.pointerEvents = "auto";
+      }
+    }
+  }
+  var snake = new Snake("snake", "start", "pause", "scor", "green", 20, 0.2);
+</script>
+</body>
+</html>
